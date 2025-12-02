@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Newton–Raphson Calculator</title>
+  <meta name="description" content="Kalkulator Newton-Raphson interaktif — masukkan fungsi, tebakan awal, toleransi, dan dapatkan akar serta tabel iterasi.">
+  <style>
+    :root{--bg:#f6fbff;--card:#ffffff;--accent:#0ea5e9;--muted:#55606a;--radius:12px}
+    *{box-sizing:border-box}
+    body{font-family:Inter, system-ui, Arial, sans-serif;background:linear-gradient(180deg,#eaf6ff,white);margin:0;padding:24px;color:#0b1520}
+    .wrap{max-width:980px;margin:0 auto}
+    header{display:flex;align-items:center;justify-content:space-between;gap:16px}
+    .left-header{display:flex;align-items:center;gap:12px}
+    .logo-img{width:64px;height:auto}
+    h1{margin:0;font-size:1.3rem}
+    p.lead{margin:.3rem 0 1rem 0;color:var(--muted)}
+    .name-right{font-weight:700;font-size:1.1rem;color:var(--accent)}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:16px}
+    .card{background:var(--card);padding:16px;border-radius:var(--radius);box-shadow:0 6px 18px rgba(12,34,56,0.06)}
+    label{display:block;font-weight:600;margin-top:8px}
+    input[type=text], input[type=number], textarea, select{width:100%;padding:10px;border-radius:8px;border:1px solid #e6eef6;margin-top:6px}
+    button{margin-top:12px;padding:10px 12px;border-radius:10px;border:none;background:linear-gradient(90deg,var(--accent),#60a5fa);color:white;font-weight:700;cursor:pointer}
+    .muted{color:var(--muted);font-size:.95rem}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{border:1px solid #eef6fb;padding:8px;text-align:right;font-family:monospace}
+    th{background:#f7fbfd;text-align:center}
+    pre{background:#f4fbff;padding:10px;border-radius:8px;overflow:auto}
+    .result{font-size:1rem;font-weight:700;margin-top:8px}
+    @media(max-width:900px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="left-header">
+        <img src="President_University_Logo.png" alt="President University Logo" class="logo-img">
+        <div>
+          <h1>Newton–Raphson Calculator</h1>
+          <p class="lead">Masukkan fungsi f(x). Anda bisa menuliskan turunan f'(x) jika ada — jika tidak, sistem akan menghitung turunan numerik otomatis. Hasil dan tabel iterasi akan tampil di sebelah kanan.</p>
+        </div>
+      </div>
+      <div class="name-right">IQBAL AKHMARUFAJAR</div>
+    </header>
+
+    <div class="grid" style="margin-top:16px">
+      <section class="card" aria-labelledby="form-title">
+        <h2 id="form-title" style="margin:0 0 6px 0">Input</h2>
+
+        <label for="fn">Fungsi f(x)</label>
+        <input id="fn" type="text" placeholder="Contoh: x**3 - 2*x - 5" value="x**3 - 2*x - 5">
+        <div class="muted">Gunakan sintaks JavaScript/Math: x**2, Math.sin(x), Math.exp(x), Math.log(x), Math.PI, dll.</div>
+
+        <label for="df">Turunan f'(x) (opsional)</label>
+        <input id="df" type="text" placeholder="Contoh: 3*x**2 - 2" >
+        <div class="muted">Kosongkan untuk menggunakan turunan numerik (central difference).</div>
+
+        <label for="x0">Tebakan awal x<sub>0</sub></label>
+        <input id="x0" type="number" step="any" value="2">
+
+        <label for="tol">Toleransi (error) — stop jika |dx| &lt; tol</label>
+        <input id="tol" type="number" step="any" value="1e-8">
+
+        <label for="maxit">Iterasi maksimum</label>
+        <input id="maxit" type="number" value="50">
+
+        <label for="h">H untuk turunan numerik (jika df kosong)</label>
+        <input id="h" type="number" step="any" value="1e-6">
+
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button id="run">Hitung</button>
+          <button id="reset" type="button" style="background:#e6eef6;color:#0b1520">Reset</button>
+        </div>
+
+        <details style="margin-top:10px">
+          <summary>Penjelasan singkat</summary>
+          <p class="muted">Metode Newton–Raphson: x_{n+1} = x_n - f(x_n)/f'(x_n). Hasil konvergen cepat jika tebakan dekat dengan akar dan f'(x) ≠ 0.</p>
+        </details>
+      </section>
+
+      <aside class="card" aria-labelledby="output-title">
+        <h2 id="output-title" style="margin:0 0 6px 0">Hasil & Iterasi</h2>
+        <div id="summary" class="muted">Belum ada hasil. Klik "Hitung" untuk mulai.</div>
+
+        <div id="resultBox" style="display:none">
+          <div class="result">Akar (aproks): <span id="root"></span></div>
+          <div class="muted">f(root) = <span id="froot"></span> • Iterasi: <span id="iters"></span></div>
+          <div style="margin-top:8px;overflow:auto;max-height:320px">
+            <table id="table">
+              <thead>
+                <tr><th>n</th><th>x_n</th><th>f(x_n)</th><th>f'(x_n)</th><th>dx</th><th>|dx|</th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="errorBox" style="margin-top:10px"></div>
+      </aside>
+    </div>
+
+    <section style="margin-top:14px" class="card">
+      <h3>Contoh & Tips</h3>
+      <p class="muted">Contoh fungsi: x**3 - 2*x - 5 (akar ~ 2.094551). Gunakan tebakan awal dekat akar. Jika turunan mendekati nol, metode bisa gagal — sistem akan memberi peringatan.</p>
+      <pre id="log" aria-live="polite"></pre>
+    </section>
+  </div>
+
+  <script>
+    // Utility: create a safe function from expression string using Math
+    function makeFn(expr) {
+      if (typeof expr !== 'string' || expr.trim() === '') throw new Error('Expression kosong');
+      try {
+        return new Function('x', 'with(Math){ return ' + expr + '; }');
+      } catch (e) {
+        throw new Error('Ekspresi tidak valid: ' + e.message);
+      }
+    }
+
+    function numericDeriv(f, x, h) { return (f(x + h) - f(x - h)) / (2 * h); }
+
+    function fmt(v) {
+      if (!isFinite(v)) return String(v);
+      if (Math.abs(v) < 1e-12) return '0';
+      if (Math.abs(v) >= 1e6 || Math.abs(v) < 1e-6) return v.toExponential(6);
+      return Number(v.toFixed(12)).toString();
+    }
+
+    const fnInp = document.getElementById('fn');
+    const dfInp = document.getElementById('df');
+    const x0Inp = document.getElementById('x0');
+    const tolInp = document.getElementById('tol');
+    const maxitInp = document.getElementById('maxit');
+    const hInp = document.getElementById('h');
+    const runBtn = document.getElementById('run');
+    const resetBtn = document.getElementById('reset');
+    const summary = document.getElementById('summary');
+    const resultBox = document.getElementById('resultBox');
+    const rootSpan = document.getElementById('root');
+    const frootSpan = document.getElementById('froot');
+    const itersSpan = document.getElementById('iters');
+    const tbody = document.querySelector('#table tbody');
+    const log = document.getElementById('log');
+    const errorBox = document.getElementById('errorBox');
+
+    function appendLog(msg){ log.textContent = msg + '\n' + log.textContent; }
+
+    runBtn.addEventListener('click', () => {
+      summary.textContent = 'Menghitung...';
+      resultBox.style.display = 'none';
+      errorBox.textContent = '';
+      tbody.innerHTML = '';
+
+      let expr = fnInp.value.trim();
+      let dexpr = dfInp.value.trim();
+      let x0 = Number(x0Inp.value);
+      let tol = Number(tolInp.value);
+      let maxit = parseInt(maxitInp.value, 10);
+      let h = Number(hInp.value);
+
+      if (!expr) { summary.textContent = 'Masukkan fungsi f(x).'; return; }
+      if (!isFinite(x0)) { summary.textContent = 'Tebakan awal tidak valid.'; return; }
+      if (!(tol > 0)) { summary.textContent = 'Toleransi harus > 0.'; return; }
+      if (!(maxit > 0)) { summary.textContent = 'Iterasi maksimum harus > 0.'; return; }
+      if (!(h > 0)) { summary.textContent = 'h harus > 0.'; return; }
+
+      let f, df;
+      try {
+        f = makeFn(expr);
+        if (dexpr) df = makeFn(dexpr);
+      } catch (e) {
+        summary.textContent = e.message;
+        return;
+      }
+
+      let x = x0;
+      let converged = false;
+      let rows = [];
+      for (let n = 0; n < maxit; n++){
+        let fx;
+        try { fx = f(x); }
+        catch (e){ summary.textContent = 'Error evaluasi f(x) pada x=' + x + ': ' + e.message; return; }
+
+        let dfx;
+        try { if (df) dfx = df(x); else dfx = numericDeriv(f, x, h); }
+        catch (e) { summary.textContent = 'Error evaluasi f\'(x) pada x=' + x + ': ' + e.message; return; }
+
+        if (!isFinite(fx) || !isFinite(dfx)){
+          summary.textContent = 'Nilai bukan angka atau tak hingga pada iterasi ' + n + '. Cek fungsi.'; return;
+        }
+
+        if (Math.abs(dfx) < 1e-15){
+          rows.push({n,x,fx,dfx,dx:NaN});
+          summary.textContent = 'Turunan mendekati nol (|f\'| < 1e-15) pada iterasi ' + n + '. Metode gagal.';
+          break;
+        }
+
+        let dx = fx / dfx;
+        let xnext = x - dx;
+        rows.push({n,x,fx,dfx,dx,absdx:Math.abs(dx)});
+
+        if (!isFinite(xnext)){
+          summary.textContent = 'Akar divergen ke tak hingga pada iterasi ' + n + '.'; break; }
+
+        if (Math.abs(dx) < tol || Math.abs(fx) < tol){ x = xnext; converged = true; break; }
+
+        x = xnext;
+      }
+
+      tbody.innerHTML = '';
+      rows.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td style="text-align:center">' + r.n + '</td>'
+          + '<td>' + fmt(r.x) + '</td>'
+          + '<td>' + fmt(r.fx) + '</td>'
+          + '<td>' + fmt(r.dfx) + '</td>'
+          + '<td>' + (isNaN(r.dx)? 'NaN' : fmt(r.dx)) + '</td>'
+          + '<td>' + (r.absdx===undefined? '-' : fmt(r.absdx)) + '</td>';
+        tbody.appendChild(tr);
+      });
+
+      let finalRoot = x;
+      let finalF;
+      try { finalF = f(finalRoot); } catch(e){ finalF = NaN; }
+
+      rootSpan.textContent = fmt(finalRoot);
+      frootSpan.textContent = fmt(finalF);
+      itersSpan.textContent = rows.length;
+      resultBox.style.display = 'block';
+
+      if (converged) {
+        summary.textContent = 'Terhenti: konvergen.';
+        appendLog('Konvergen: root ≈ ' + fmt(finalRoot) + ' setelah ' + rows.length + ' iterasi');
+      } else {
+        if (rows.length >= maxit) summary.textContent = 'Terhenti: mencapai iterasi maksimum (' + maxit + '). Mungkin belum konvergen.';
+        else summary.textContent = summary.textContent || 'Terhenti: kondisi berhenti tercapai.';
+        appendLog('Tidak konvergen atau berhenti awal — periksa fungsi/tebakan awal.');
+      }
+    });
+
+    resetBtn.addEventListener('click', () => {
+      fnInp.value = 'x**3 - 2*x - 5'; dfInp.value = ''; x0Inp.value = 2; tolInp.value = 1e-8; maxitInp.value = 50; hInp.value = 1e-6;
+      summary.textContent = 'Form direset.'; resultBox.style.display = 'none'; tbody.innerHTML = ''; log.textContent = '';
+    });
+  </script>
+</body>
+</html>
